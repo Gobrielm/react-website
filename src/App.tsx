@@ -90,10 +90,10 @@ function App() {
 
 
     async function GetWeatherData({lon, lat}: Coords) {
-        const res = await fetch(`http://localhost:3000/api/weather?lat=${lat}&lon=${lon}`);
-        // const res = await fetch(
-        //     `/api/weather?lat=${lat}&lon=${lon}`
-        // );
+        // const res = await fetch(`http://react-website-two-umber.vercel.app/api/weather?lat=${lat}&lon=${lon}`);
+        const res = await fetch(
+            `/api/weather?lat=${lat}&lon=${lon}`
+        );
     
         if (!res.ok) {
             throw new Error("Failed to fetch weather");
