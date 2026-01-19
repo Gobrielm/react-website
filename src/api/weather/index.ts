@@ -1,17 +1,17 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { MongoClient, ServerApiVersion } from "mongodb";
-const uri = `mongodb+srv://${process.env.MONGO_DB_USERNAME}:${process.env.MONGO_DB_PASSWORD}@cluster0.ojghum0.mongodb.net/?appName=Cluster0`;
+// import { MongoClient, ServerApiVersion } from "mongodb";
+// const uri = `mongodb+srv://${process.env.MONGO_DB_USERNAME}:${process.env.MONGO_DB_PASSWORD}@cluster0.ojghum0.mongodb.net/?appName=Cluster0`;
 
-const client = new MongoClient(uri, {
-    serverApi: {
-      version: ServerApiVersion.v1,
-      strict: true,
-      deprecationErrors: true,
-    }
-  });
+// const client = new MongoClient(uri, {
+//     serverApi: {
+//       version: ServerApiVersion.v1,
+//       strict: true,
+//       deprecationErrors: true,
+//     }
+//   });
 
-const DATATIMEOUT = 3600000; // milliseconds
-const WEATHER_CLOSTNEST = 5000 // meters
+// const DATATIMEOUT = 3600000; // milliseconds
+// const WEATHER_CLOSTNEST = 5000 // meters
 
 export type WeatherData = {
     coord: {

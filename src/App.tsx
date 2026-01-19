@@ -1,26 +1,26 @@
 import { ChangeEvent, KeyboardEvent, useState } from 'react'
 import { WeatherData } from './api/weather/index'
 
-function UnitSelector(setUnit: React.Dispatch<React.SetStateAction<boolean>>) {
-    const [isCelsuis, setValue] = useState(true);
+// function UnitSelector(setUnit: React.Dispatch<React.SetStateAction<boolean>>) {
+//     const [isCelsuis, setValue] = useState(true);
 
-    const handleChange = () => {
-        const newValue = !isCelsuis;
-        setValue(newValue);
-        setUnit(newValue);
-    }
+//     const handleChange = () => {
+//         const newValue = !isCelsuis;
+//         setValue(newValue);
+//         setUnit(newValue);
+//     }
 
-    return (
-        <>
-            <label className="TempSwitch">
-                Fahrenheit
-                <input type="checkbox"
-                    onChange={handleChange}
-                />
-            </label>
-        </>
-    )
-}
+//     return (
+//         <>
+//             <label className="TempSwitch">
+//                 Fahrenheit
+//                 <input type="checkbox"
+//                     onChange={handleChange}
+//                 />
+//             </label>
+//         </>
+//     )
+// }
 
 type LonLatTextboxProps = {
     onCoordsSubmit: (coords: Coords) => Promise<void>;
@@ -77,7 +77,7 @@ function LonLatTextbox({onCoordsSubmit}: LonLatTextboxProps) {
     );
 }
 
-const DATATIMEOUT = 3600000;
+// const DATATIMEOUT = 3600000;
 
 type Coords = {
     lon: number;
@@ -86,7 +86,7 @@ type Coords = {
 
 function App() {
     const [weatherData, setWeatherData] = useState<WeatherData>();
-    const [isCelsuis, setValue] = useState(true);
+    // const [isCelsuis, setValue] = useState(true);
 
 
     async function GetWeatherData({lon, lat}: Coords) {
@@ -108,7 +108,7 @@ function App() {
             <LonLatTextbox onCoordsSubmit={GetWeatherData}/>
             <table id="WeatherDataMenu">
                 <tbody>
-                    <DisplayWeather data={weatherData} isCelsuis={isCelsuis}/>
+                    <DisplayWeather data={weatherData} isCelsuis={true}/>
                 </tbody>
             </table>
         </div>
