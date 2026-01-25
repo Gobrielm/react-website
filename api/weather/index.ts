@@ -88,37 +88,6 @@ export type WeatherData = {
 //     };
 // }
 
-function formatUtcAt16(date: Date): string {
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-    const day = String(date.getUTCDate()).padStart(2, "0");
-    return `${year}-${month}-${day}T16:00Z`;
-  }
-
-async function fetchElecticityRates(lon: number, lat: number) {
-    const now = new Date();
-
-    const startDate = new Date(now);
-    const endDate = new Date(now);
-    endDate.setUTCDate(endDate.getUTCDate() + 1);
-
-    const start = formatUtcAt16(startDate);
-    const end = formatUtcAt16(endDate);
-
-
-    const response = await fetch(`https://api.electricitymaps.com/v3/price-day-ahead/forecast?lon=${lon}&lat=${lat} \
-        &start=${start}&end=${end}`, 
-        {headers: {
-            "auth-token": process.env.ELECTRICITY_TOKEN as string,
-        }
-    });
-
-    const data = await response.json()
-    console.log(data);
-}
-
-
-
 async function storeDataInDB(weatherData: WeatherData) {
     try {
         const { error } = await supabase
@@ -165,23 +134,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         //     )
         // }
 
-        await fetchElecticityRates(lon, lat);
+        console.log("Fetched from API to give to database");
+        let response = await fetch(
+            `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${process.env.WEATHER_API_KEY}&units=metric`
+        );
+        const data = await response.json();
 
-        // console.log("Fetched from API to give to database");
-        // let response = await fetch(
-        //     `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${process.env.WEATHER_API_KEY}&units=metric`
-        // );
-        // const data = await response.json();
+        if (data.cod !== 200) {
+            console.error("Location not found:", data.message);
+            throw "Location not found"
+        }
 
-        // if (data.cod !== 200) {
-        //     console.error("Location not found:", data.message);
-        //     throw "Location not found"
-        // }
-
-        // await storeDataInDB(data);
+        await storeDataInDB(data);
         
         return res.status(200).json(
-            {}
+            data
         )
 
     } catch (err: any) {
