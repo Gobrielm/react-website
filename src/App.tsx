@@ -1,69 +1,64 @@
-import { ChangeEvent, KeyboardEvent, useState } from 'react'
-import { WeatherData } from './api/weather/index'
+import { ChangeEvent, KeyboardEvent, useState, useEffect } from 'react'
+import { WeatherData } from '../api/weather/index'
 
-// function UnitSelector(setUnit: React.Dispatch<React.SetStateAction<boolean>>) {
-//     const [isCelsuis, setValue] = useState(true);
+type UnitSelectorFunc = {
+    setUnit: React.Dispatch<React.SetStateAction<boolean>>;
+};
 
-//     const handleChange = () => {
-//         const newValue = !isCelsuis;
-//         setValue(newValue);
-//         setUnit(newValue);
-//     }
+function UnitSelector(setUnit: UnitSelectorFunc) {
+    const [isFahrenheit, setValue] = useState(false);
 
-//     return (
-//         <>
-//             <label className="TempSwitch">
-//                 Fahrenheit
-//                 <input type="checkbox"
-//                     onChange={handleChange}
-//                 />
-//             </label>
-//         </>
-//     )
-// }
+    const handleChange = () => {
+        const newValue = !isFahrenheit;
+        setValue(newValue);
+        setUnit.setUnit(newValue);
+    }
+
+    return (
+        <>
+            <label className="TempSwitch">
+                Fahrenheit
+                <input type="checkbox"
+                    onChange={handleChange}
+                />
+            </label>
+        </>
+    )
+}
 
 type LonLatTextboxProps = {
     onCoordsSubmit: (coords: Coords) => Promise<void>;
 };
 
 function LonLatTextbox({onCoordsSubmit}: LonLatTextboxProps) {
-    const [lonText, setLonText] = useState('');
     const [latText, setLatText] = useState('');
-
-    const handleLonChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setLonText(event.target.value);
-    };
+    const [lonText, setLonText] = useState('');
 
     const handleLatChange = (event: ChangeEvent<HTMLInputElement>) => {
         setLatText(event.target.value);
     };
 
+
+    const handleLonChange = (event: ChangeEvent<HTMLInputElement>) => {
+        setLonText(event.target.value);
+    };
+
     const handleKeyDown = async (event: KeyboardEvent<HTMLInputElement>) => {
         if (event.key === "Enter") {
-            const lon = Number(lonText);
             const lat = Number(latText);
+            const lon = Number(lonText);
 
             if (isNaN(lon) || isNaN(lat)) return;
 
             await onCoordsSubmit({ lon, lat });
             
-            setLonText("");
             setLatText("");
+            setLonText("");
         }
     };
 
     return (
         <div>
-            <label htmlFor="myInput">Enter Lon:</label>
-            <input
-                type="number"
-                id="lonInput"
-                value={lonText}
-                onChange={handleLonChange}
-                placeholder="Enter Lat..."
-                onKeyDown={handleKeyDown}
-            />
-
             <label htmlFor="myInput">Enter Lat:</label>
             <input
                 type="number"
@@ -73,24 +68,31 @@ function LonLatTextbox({onCoordsSubmit}: LonLatTextboxProps) {
                 placeholder="Enter Lat..."
                 onKeyDown={handleKeyDown}
             />
+            
+            <label htmlFor="myInput">Enter Lon:</label>
+                <input
+                type="number"
+                id="lonInput"
+                value={lonText}
+                onChange={handleLonChange}
+                placeholder="Enter Lat..."
+                onKeyDown={handleKeyDown}
+            />
         </div>
     );
 }
 
-// const DATATIMEOUT = 3600000;
-
 type Coords = {
-    lon: number;
     lat: number;
+    lon: number;
 };
 
 function App() {
-    const [weatherData, setWeatherData] = useState<WeatherData>();
-    // const [isCelsuis, setValue] = useState(true);
+    const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+    const [isFahrenheit, setValue] = useState(false);
 
-
-    async function GetWeatherData({lon, lat}: Coords) {
-        // const res = await fetch(`http://react-website-two-umber.vercel.app/api/weather?lat=${lat}&lon=${lon}`);
+    async function GetWeatherData({lat, lon}: Coords) {
+        console.log("AAA");
         const res = await fetch(
             `/api/weather?lat=${lat}&lon=${lon}`
         );
@@ -100,15 +102,28 @@ function App() {
         }
     
         const data = await res.json();
-        setWeatherData(data)
+        // setWeatherData(data)
     }
+
+    function fetchDataForCurrentLocation(location: GeolocationPosition) {
+        const lat = location.coords.latitude
+        const lon = location.coords.longitude
+        GetWeatherData({lat, lon})
+    }
+
+    useEffect(() => {
+        if (!weatherData) {
+            navigator.geolocation.getCurrentPosition(fetchDataForCurrentLocation);
+        }
+    }, [weatherData]);
 
     return (
         <div className = "WeatherHomePage">
+            <UnitSelector setUnit={setValue}/>
             <LonLatTextbox onCoordsSubmit={GetWeatherData}/>
             <table id="WeatherDataMenu">
                 <tbody>
-                    <DisplayWeather data={weatherData} isCelsuis={true}/>
+                    <DisplayWeather data={weatherData} isFahrenheit={isFahrenheit}/>
                 </tbody>
             </table>
         </div>
@@ -120,23 +135,22 @@ function celsiusToFahrenheit(celsius: number) {
 }
 
 type DisplayWeatherProps = {
-    data?: WeatherData;
-    isCelsuis: boolean;
+    data: WeatherData | null;
+    isFahrenheit: boolean;
 };
 
-function DisplayWeather({data, isCelsuis}: DisplayWeatherProps): React.ReactElement | null {
-  if (!data) {
-    return null; // nothing until data exists
-  }
+function DisplayWeather({data, isFahrenheit}: DisplayWeatherProps): React.ReactElement | null {
+    if (!data) {
+        return null; // nothing until data exists
+    }
 
-  let temp = isCelsuis ? data.main.temp: celsiusToFahrenheit(data.main.temp);
-  let tempStr = temp.toFixed(1);
-  tempStr += isCelsuis ? "°C": "°F";
+    let temp = isFahrenheit ? celsiusToFahrenheit(data.main.temp): data.main.temp;
+    let tempStr = temp.toFixed(1);
+    tempStr += isFahrenheit ? "°F": "°C";
 
-  return (
+    return (
         <tr>
             <td>{tempStr}</td>
-            <td>{data.weather[0].main}</td>
             <td>{data.weather[0].description}</td>
         </tr>
     );
