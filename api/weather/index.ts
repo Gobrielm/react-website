@@ -1,12 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
+import sql from "./database.ts"
 
 const supabase = createClient(process.env.SUPABASE_URL as string, process.env.SUPABASE_PASSWORD as string)
 
 const WEATHER_CLOSTNEST = 5000 // meters
-const EXPIRES_BY = 600000 // milliseconds
+const EXPIRES_BY = 1200000 // milliseconds
 
-export type WeatherData = {
+type APIWeatherData = {
     coord: {
         lon: number;
         lat: number;
@@ -59,55 +60,67 @@ export type WeatherData = {
     cod: number;
 };
 
-// async function checkDBForData(
-//     lat: number,
-//     lon: number
-// ): Promise<any | null> {
-//     try {
-//         const { data, error } = await supabase
-//             .rpc('get_nearest_weather', { lon, lat, radius: WEATHER_CLOSTNEST });
+export type WeatherData = {
+    weather_main: string;
+    weather_description: string;
+    temp: number;
+    feels_like: number;
+    visibility: number | null;
+    wind_speed: number | null;
+    deg: number | null;
+    gust: number | null;
+    rain_1h: number | null;
+    snow_1h: number | null;
+    clouds: number | null;
+    dt: Date;
+    expires_at: Date;
+    lon: number;
+    lat: number;
+};
 
-//         if (error) throw error;
+function formatWeatherData(weatherData: APIWeatherData): WeatherData {
+    return {
+        weather_main: weatherData.weather[0].main,
+        weather_description: weatherData.weather[0].description,
+        temp: weatherData.main.temp,
+        feels_like: weatherData.main.feels_like,
+        visibility: weatherData.visibility ?? null,
+        wind_speed: weatherData.wind?.speed ?? null,
+        deg: weatherData.wind?.deg ?? null,
+        gust: weatherData.wind?.gust ?? null,
+        rain_1h: weatherData.rain?.['1h'] ?? null,
+        snow_1h: weatherData.snow?.['1h'] ?? null,
+        clouds: weatherData.clouds.all ?? null,
+        dt: new Date(weatherData.dt * 1000),
+        expires_at: new Date(Date.now() + EXPIRES_BY),
+        lon: weatherData.coord.lon,
+        lat: weatherData.coord.lat
+    }
+}
 
-//         return data?.[0] ?? null;
+async function checkDBForData(
+    lat: number,
+    lon: number
+): Promise<any | null> {
+    try {
+        const { data, error } = await supabase
+            .rpc('weather_within_radius', { lon, lat, radius_meters: WEATHER_CLOSTNEST });
 
-//     } catch (err: any) {
-//         console.log(`ERROR: ${err}`)
-//     }
-//     return null;
-// }
+        if (error) throw error;
+        
+        return data?.[0] ?? null;
 
-// function normalizeWeatherData(data: WeatherData): WeatherDocument {
-//     return {
-//         coord: {
-//             type: "Point",
-//             coordinates: [data.coord.lon, data.coord.lat] // Longitude then Latitude for DB
-//         },
-//         date: new Date(data.dt * 1000),
-//         weather: data
-//     };
-// }
+    } catch (err: any) {
+        console.log(`ERROR: ${JSON.stringify(err, null, 2)}`)
+    }
+    return null;
+}
 
 async function storeDataInDB(weatherData: WeatherData) {
     try {
-        const { error } = await supabase
-            .from('weather_data')
-            .insert([{
-
-                weather_main: weatherData.weather[0].main,
-                weather_description: weatherData.weather[0].description,
-                temp: weatherData.main.temp,
-                feels_like: weatherData.main.feels_like,
-                visibility: weatherData.visibility ?? null,
-                wind_speed: weatherData.wind?.speed ?? null,
-                deg: weatherData.wind?.deg ?? null,
-                gust: weatherData.wind?.gust ?? null,
-                rain_1h: weatherData.rain?.['1h'] ?? null,
-                snow_1h: weatherData.snow?.['1h'] ?? null,
-                clouds: weatherData.clouds ?? null,
-                dt: weatherData.dt,
-                expires_at: EXPIRES_BY,
-            }]);
+        const { error } = await supabase.rpc('insert_weather_data', 
+            weatherData
+        );
         
         if (error) throw error;
 
@@ -125,14 +138,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const lat = Number(req.query.lat);
         const lon = Number(req.query.lon);
 
-        // const dbDoc = await checkDBForData(lat, lon);
+        const dbDoc = await checkDBForData(lat, lon);
 
-        // if (dbDoc != null) {
-        //     console.log("Fetched from database");
-        //     return res.status(200).json(
-        //         dbDoc
-        //     )
-        // }
+        if (dbDoc != null) {
+            console.log(dbDoc);
+            console.log("Fetched from database");
+            return res.status(200).json(
+                dbDoc
+            )
+        }
 
         console.log("Fetched from API to give to database");
         let response = await fetch(
@@ -145,10 +159,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             throw "Location not found"
         }
 
-        await storeDataInDB(data);
+        const formatted_data = formatWeatherData(data);
+
+        await storeDataInDB(formatted_data);
         
         return res.status(200).json(
-            data
+            formatted_data
         )
 
     } catch (err: any) {

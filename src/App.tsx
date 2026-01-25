@@ -91,6 +91,8 @@ function App() {
     const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
     const [isFahrenheit, setValue] = useState(false);
 
+    let requested = false;
+
     async function GetWeatherData({lat, lon}: Coords) {
         console.log("AAA");
         const res = await fetch(
@@ -102,7 +104,7 @@ function App() {
         }
     
         const data = await res.json();
-        // setWeatherData(data)
+        setWeatherData(data)
     }
 
     function fetchDataForCurrentLocation(location: GeolocationPosition) {
@@ -112,8 +114,9 @@ function App() {
     }
 
     useEffect(() => {
-        if (!weatherData) {
+        if (!weatherData && !requested) {
             navigator.geolocation.getCurrentPosition(fetchDataForCurrentLocation);
+            requested = true;
         }
     }, [weatherData]);
 
@@ -144,14 +147,14 @@ function DisplayWeather({data, isFahrenheit}: DisplayWeatherProps): React.ReactE
         return null; // nothing until data exists
     }
 
-    let temp = isFahrenheit ? celsiusToFahrenheit(data.main.temp): data.main.temp;
+    let temp = isFahrenheit ? celsiusToFahrenheit(data.temp): data.temp;
     let tempStr = temp.toFixed(1);
     tempStr += isFahrenheit ? "°F": "°C";
 
     return (
         <tr>
             <td>{tempStr}</td>
-            <td>{data.weather[0].description}</td>
+            <td>{data.weather_description}</td>
         </tr>
     );
 }
