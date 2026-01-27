@@ -1,6 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
-import sql from "./database.ts"
 
 const supabase = createClient(process.env.SUPABASE_URL as string, process.env.SUPABASE_PASSWORD as string)
 
@@ -141,7 +140,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const dbDoc = await checkDBForData(lat, lon);
 
         if (dbDoc != null) {
-            console.log(dbDoc);
             console.log("Fetched from database");
             return res.status(200).json(
                 dbDoc
